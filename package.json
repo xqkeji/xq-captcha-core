@@ -1,0 +1,50 @@
+{
+  "name": "xq-captcha-core",
+  "version": "1.0.0",
+  "description": "xq-click-captcha / xq-slide-captcha 的共享核心：请求传输、响应解析、回调、状态、选项与门面基类",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./logic": {
+      "types": "./dist/logic.d.ts",
+      "import": "./dist/logic.mjs",
+      "require": "./dist/logic.cjs"
+    },
+    "./dist/*": "./dist/*"
+  },
+  "scripts": {
+    "build": "npx unbuild && npx xq-banner",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xqkeji/xq-captcha-core.git"
+  },
+  "keywords": [
+    "captcha",
+    "xq-captcha",
+    "core"
+  ],
+  "author": "xqkeji.cn",
+  "license": "AGPL-3.0-only",
+  "homepage": "https://xqkeji.cn/",
+  "dependencies": {
+    "bootstrap": "^5.3.3"
+  },
+  "devDependencies": {
+    "@types/bootstrap": "^5.2.10",
+    "typescript": "^5.6.0",
+    "unbuild": "^1.1.1",
+    "xq-banner": "^1.0.10"
+  }
+}
