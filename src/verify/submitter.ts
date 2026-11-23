@@ -22,7 +22,17 @@ export class Submitter {
   submit(data: Record<string, string>): void {
     this.transport
       .request('POST', this.options.checkUrl, data)
-      .then((body) => this.outcome.onSuccess(parseCheckResponse(body, this.options.failText)))
+      .then((body) => {
+        const result = parseCheckResponse(body, this.options.failText);
+
+        // 业务校验失败（HTTP 200 但 success=false）必须走失败分支，
+        // 否则会把错误的点选/滑动判为通过并放行表单守卫。
+        if (result.success) {
+          this.outcome.onSuccess(result);
+        } else {
+          this.outcome.onFailure(result.message || this.options.failText);
+        }
+      })
       .catch((error: unknown) => {
         this.outcome.onFailure(failureMessage(error, this.options.failText));
       });

@@ -173,6 +173,7 @@ export abstract class BaseCaptcha {
     this.bindTools();
     this.trigger.bind(() => this.show());
     this.bindFormError();
+    this.hiddenInput.mount();
 
     return this;
   }
@@ -196,7 +197,7 @@ export abstract class BaseCaptcha {
     this.clearTimers();
     this.state.beginRound();
     this.behaviour.resetForShow();
-    this.hiddenInput.remove();
+    this.hiddenInput.block();
     this.trigger.showPlaceholder();
     this.message.hideOk();
 
@@ -228,7 +229,7 @@ export abstract class BaseCaptcha {
     this.hide();
     this.clearTimers();
     this.state.beginRound();
-    this.hiddenInput.remove();
+    this.hiddenInput.block();
     this.trigger.showPlaceholder();
     this.refresh();
     this.callbacks.emit('reset');
@@ -295,7 +296,7 @@ export abstract class BaseCaptcha {
     this.message.dispose();
     this.theme.dispose();
     this.modal.dispose();
-    this.hiddenInput.remove();
+    this.hiddenInput.dispose();
 
     if (this.formErrorHandler) {
       document.removeEventListener(FORM_ERROR_EVENT, this.formErrorHandler);
@@ -322,9 +323,7 @@ export abstract class BaseCaptcha {
     this.trigger.showSuccess();
     this.message.show(this.options.successText, true);
 
-    if (this.options.autoInsertInput) {
-      this.hiddenInput.sync(this.getToken());
-    }
+    this.hiddenInput.sync(this.getToken());
 
     this.clearSuccessTimer();
     this.successHideTimer = window.setTimeout(() => {
@@ -339,7 +338,7 @@ export abstract class BaseCaptcha {
     this.state.busy = false;
     this.state.passed = false;
     this.state.token = null;
-    this.hiddenInput.remove();
+    this.hiddenInput.block();
 
     this.behaviour.markFailures();
     this.modal.shake();

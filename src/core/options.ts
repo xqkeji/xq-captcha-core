@@ -21,6 +21,8 @@ export interface BaseOptions {
   theme: Theme;
   inputName: string;
   autoInsertInput: boolean;
+  /** 宿主页存在静态守卫 input 时，未通过验证显示的原生提示文案。 */
+  guardText: string;
   timeout: number;
   copyright: Copyright;
   transport?: Transport;
@@ -39,6 +41,7 @@ export const BASE_OPTIONS: BaseOptions = {
   theme: 'auto',
   inputName: 'xq_captcha_token',
   autoInsertInput: true,
+  guardText: '请先完成人机验证',
   timeout: 10000,
   copyright: {
     text: '© xqkeji.cn',
