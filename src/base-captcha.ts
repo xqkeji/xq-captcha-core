@@ -11,6 +11,7 @@ import { ModalHost } from './ui/modal-host';
 import { Theme } from './ui/theme';
 import { Trigger, type TriggerClasses } from './ui/trigger';
 import { Submitter, type SubmitOutcome } from './verify/submitter';
+import { buildCheckPayload } from './verify/payload';
 
 const SUCCESS_HIDE_MS = 2000;
 const FAIL_REFRESH_MS = 1200;
@@ -36,7 +37,8 @@ export interface CaptchaContext {
   state: State;
   options: BaseOptions;
   type: CaptchaType;
-  /** 提交类型特有 payload 到检验接口（值可为数组/数字等可 JSON 序列化的类型）。 */
+  /** 提交类型特有 payload 到检验接口（值可为数组/数字等可 JSON 序列化的类型）。
+   *  challenge_id 由基类自动附加，行为子类不需要关心。 */
   submit(data: Record<string, unknown>): void;
   /** 上报 refresh 回调。 */
   emitRefresh(): void;
@@ -102,6 +104,8 @@ export abstract class BaseCaptcha {
   private successHideTimer: number | null = null;
   private failRefreshTimer: number | null = null;
   private formErrorHandler: ((event: Event) => void) | null = null;
+  /** 出图请求序号：双击 init / 重复 refresh 时只认最后一次，避免旧图配新 challenge_id。 */
+  private refreshSeq = 0;
 
   private readonly outcome: SubmitOutcome = {
     onSuccess: (result) => this.handleSuccess(result),
@@ -216,13 +220,30 @@ export abstract class BaseCaptcha {
 
   refresh(): void {
     this.clearFailTimer();
+    // beginRefresh 会清掉 challengeId：旧图对应的 id 不能再用于新图。
     this.state.beginRefresh();
     this.behaviour.prepareRefresh();
 
+    const seq = ++this.refreshSeq;
+
     this.dataClient
       .load()
-      .then((data) => this.behaviour.applyData(data))
+      .then((data) => {
+        // 期间又发起了新的刷新，这一轮的结果作废（否则会出现旧图配新 id）。
+        if (seq !== this.refreshSeq) {
+          return;
+        }
+
+        // challenge_id 必须和「这次要画的图」同步落库，不能等到图片解码完再写。
+        this.state.challengeId = data.challenge_id ?? null;
+
+        return this.behaviour.applyData(data);
+      })
       .catch((error: unknown) => {
+        if (seq !== this.refreshSeq) {
+          return;
+        }
+
         console.error(`${this.hooks.logPrefix}: 获取验证码失败`, error);
         // 数据解析/请求失败时 applyData 不会被调用，loading 会一直转。
         // 这里给出可见反馈并置回未通过守卫；不自动刷新，避免后端持续失败时死循环。
@@ -232,6 +253,7 @@ export abstract class BaseCaptcha {
         this.state.busy = false;
         this.state.passed = false;
         this.state.token = null;
+        this.state.challengeId = null;
         this.hiddenInput.block();
         this.callbacks.emit('fail', reason);
       });
@@ -317,7 +339,7 @@ export abstract class BaseCaptcha {
   }
 
   protected submit(data: Record<string, unknown>): void {
-    this.submitter.submit(data);
+    this.submitter.submit(buildCheckPayload(data, this.state.challengeId));
   }
 
   protected emitRefresh(): void {
@@ -350,6 +372,9 @@ export abstract class BaseCaptcha {
     this.state.busy = false;
     this.state.passed = false;
     this.state.token = null;
+    // 202 一律视为本轮作废：清掉 challenge_id，下面的定时器会重新拉图拿新 id。
+    // 不要拿旧 id 重试，服务端会把过期 id 判成「验证码已过期，请刷新重试」。
+    this.state.challengeId = null;
     this.hiddenInput.block();
 
     this.behaviour.markFailures();

@@ -41,7 +41,7 @@ export class FetchTransport implements Transport {
         ).toString();
         target += (url.includes('?') ? '&' : '?') + params;
       } else {
-        // POST 走 JSON 请求体，直接传数组/对象（如 points、slide_track）。
+        // POST 走 JSON 请求体，直接传数组/对象（如 points、track）。
         body = JSON.stringify(data);
       }
     }

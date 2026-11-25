@@ -64,3 +64,34 @@ test('信封 code 非 200 时不判成功', async () => {
   );
   await assert.rejects(() => client.load(), /格式不正确/);
 });
+
+test('challenge_id 原样透传（信封与扁平结构都要保留）', async () => {
+  const flat = new DataClient(
+    BASE_OPTIONS,
+    { request: async () => JSON.stringify({ ...data, challenge_id: 'cid_flat' }) },
+    'click',
+  );
+  assert.equal((await flat.load()).challenge_id, 'cid_flat');
+
+  const envelope = new DataClient(
+    BASE_OPTIONS,
+    {
+      request: async () =>
+        JSON.stringify({
+          code: 200,
+          data: { type: 'slide', image_base64: 'data:image/webp;base64,x', bg_width: 240, bg_height: 150, challenge_id: 'cid_env' },
+        }),
+    },
+    'slide',
+  );
+  assert.equal((await envelope.load()).challenge_id, 'cid_env');
+});
+
+test('限流信封把后端 message 透出来，而不是「格式不正确」', async () => {
+  const client = new DataClient(
+    BASE_OPTIONS,
+    { request: async () => JSON.stringify({ code: 203, message: '请求过于频繁，请稍后再试' }) },
+    'slide',
+  );
+  await assert.rejects(() => client.load(), /请求过于频繁/);
+});

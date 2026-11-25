@@ -10,7 +10,7 @@ export interface SubmitOutcome {
 
 /**
  * 上报检验结果。type 特有的 payload 由各包在调用 submit() 时传入，
- * 以 JSON 请求体提交（points / captcha_r / slide_track）。
+ * 基类再补上本轮的 challenge_id，统一以 JSON 请求体提交（points / offset / track）。
  */
 export class Submitter {
   constructor(

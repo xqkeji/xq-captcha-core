@@ -15,6 +15,8 @@ export class State {
   busy = false;
   passed = false;
   token: string | null = null;
+  /** 当前这张图对应的 challenge_id；换图 / 重置 / 校验作废时清空。 */
+  challengeId: string | null = null;
 
   // slide 特有
   markWidth = 50;
@@ -32,11 +34,13 @@ export class State {
     this.token = null;
     this.busy = false;
     this.imgLoaded = false;
+    this.challengeId = null;
   }
 
   beginRefresh(): void {
     this.imgLoaded = false;
     this.busy = false;
+    this.challengeId = null;
   }
 
   cancelFrame(): void {

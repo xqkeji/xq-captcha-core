@@ -18,5 +18,6 @@ export type {
   TrackPoint,
 } from './core/types';
 export { failureMessage, parseCheckResponse } from './verify/response';
+export { buildCheckPayload } from './verify/payload';
 export { Submitter } from './verify/submitter';
 export type { SubmitOutcome } from './verify/submitter';

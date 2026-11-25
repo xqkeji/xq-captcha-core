@@ -33,6 +33,11 @@ export interface CaptchaData {
   char_count?: number;
   hint?: string;
   message?: string;
+  /**
+   * 本轮图片的挑战标识。服务端按它保存答案，校验时带回即可只比对这一轮；
+   * 不传时服务端退回「按会话存一份」的旧路径。
+   */
+  challenge_id?: string;
 }
 
 /** 检验接口（checkUrl）返回的规范化结果。 */

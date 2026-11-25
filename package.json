@@ -1,6 +1,6 @@
 {
   "name": "xq-captcha-core",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "xq-click-captcha / xq-slide-captcha 的共享核心：请求传输、响应解析、回调、状态、选项与门面基类",
   "files": [
     "dist"

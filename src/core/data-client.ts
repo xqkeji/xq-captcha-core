@@ -16,11 +16,27 @@ export class DataClient {
     const data = unwrap(parsed);
 
     if (!isValidData(data, this.expectedType)) {
-      throw new Error('验证码数据格式不正确');
+      // 失败信封（如限流 code=203）里的 message 比「格式不正确」有用得多，优先透传。
+      throw new Error(errorMessage(parsed) ?? '验证码数据格式不正确');
     }
 
     return data;
   }
+}
+
+/** 非成功响应里的可展示文案；成功信封返回 null。 */
+function errorMessage(value: unknown): string | null {
+  if (typeof value !== 'object' || value === null) {
+    return null;
+  }
+
+  const root = value as Record<string, unknown>;
+
+  if (root.code === 200 || root.success === true) {
+    return null;
+  }
+
+  return typeof root.message === 'string' && root.message !== '' ? root.message : null;
 }
 
 /**
