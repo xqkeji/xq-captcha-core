@@ -16,14 +16,17 @@ export class HttpError extends Error {
 export type HttpMethod = 'GET' | 'POST';
 
 export interface Transport {
-  /** 2xx 时 resolve 响应文本，其余情况 reject HttpError。 */
-  request(method: HttpMethod, url: string, data?: Record<string, string>): Promise<string>;
+  /**
+   * 2xx 时 resolve 响应文本，其余情况 reject HttpError。
+   * data 允许任意可 JSON 序列化的值（如点选坐标数组），不再限定为字符串。
+   */
+  request(method: HttpMethod, url: string, data?: Record<string, unknown>): Promise<string>;
 }
 
 export class FetchTransport implements Transport {
   constructor(private readonly timeout: number) {}
 
-  async request(method: HttpMethod, url: string, data?: Record<string, string>): Promise<string> {
+  async request(method: HttpMethod, url: string, data?: Record<string, unknown>): Promise<string> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeout);
 
@@ -31,17 +34,21 @@ export class FetchTransport implements Transport {
     let body: string | undefined;
 
     if (data) {
-      const params = new URLSearchParams(data).toString();
       if (method === 'GET') {
+        // GET 没有请求体，参数仍拼到 query；非字符串值转成字符串。
+        const params = new URLSearchParams(
+          Object.entries(data).map(([key, value]) => [key, String(value)]),
+        ).toString();
         target += (url.includes('?') ? '&' : '?') + params;
       } else {
-        body = params;
+        // POST 走 JSON 请求体，直接传数组/对象（如 points、slide_track）。
+        body = JSON.stringify(data);
       }
     }
 
     const headers: Record<string, string> = { Accept: 'application/json, text/plain, */*' };
     if (body !== undefined) {
-      headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      headers['Content-Type'] = 'application/json';
     }
 
     try {

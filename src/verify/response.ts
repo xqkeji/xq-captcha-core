@@ -29,16 +29,29 @@ export function parseCheckResponse(body: string, fallbackMessage: string): Check
     };
   }
 
-  const data = parsed as Record<string, unknown>;
+  const root = parsed as Record<string, unknown>;
+
+  // xq-app-admin 的检验接口同样可能返回 {code, data:{success,token,message}} 信封。
+  // 信封里 token/message 在 data 层；扁平结构则直接在顶层。两种都支持。
+  const payload: Record<string, unknown> =
+    typeof root.data === 'object' && root.data !== null && !('token' in root) && !('message' in root)
+      ? (root.data as Record<string, unknown>)
+      : root;
+
+  const success =
+    payload.success === true ||
+    root.success === true ||
+    payload.code === 200 ||
+    root.code === 200 ||
+    payload.status === 'ok' ||
+    root.status === 'ok' ||
+    payload.status === 'success' ||
+    root.status === 'success';
 
   return {
-    success:
-      data.success === true ||
-      data.code === 200 ||
-      data.status === 'ok' ||
-      data.status === 'success',
-    token: text(data.token),
-    message: text(data.message) ?? text(data.error) ?? fallbackMessage,
+    success,
+    token: text(payload.token),
+    message: text(payload.message) ?? text(payload.error) ?? text(root.message) ?? fallbackMessage,
   };
 }
 

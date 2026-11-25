@@ -36,8 +36,8 @@ export interface CaptchaContext {
   state: State;
   options: BaseOptions;
   type: CaptchaType;
-  /** 提交类型特有 payload 到检验接口。 */
-  submit(data: Record<string, string>): void;
+  /** 提交类型特有 payload 到检验接口（值可为数组/数字等可 JSON 序列化的类型）。 */
+  submit(data: Record<string, unknown>): void;
   /** 上报 refresh 回调。 */
   emitRefresh(): void;
 }
@@ -76,6 +76,8 @@ export abstract class CaptchaBehaviour {
   abstract beforeFailRefresh(): void;
   /** 弹窗完全显示后（滑动需重新测量画布）。 */
   onModalShown?(): void;
+  /** 数据/图片加载失败时把 loading 切换为错误态（不自动刷新）。 */
+  onDataError?(): void;
 }
 
 /**
@@ -222,6 +224,16 @@ export abstract class BaseCaptcha {
       .then((data) => this.behaviour.applyData(data))
       .catch((error: unknown) => {
         console.error(`${this.hooks.logPrefix}: 获取验证码失败`, error);
+        // 数据解析/请求失败时 applyData 不会被调用，loading 会一直转。
+        // 这里给出可见反馈并置回未通过守卫；不自动刷新，避免后端持续失败时死循环。
+        this.behaviour.onDataError?.();
+        const reason = error instanceof Error ? error.message : this.options.failText;
+        this.message.show(reason, false);
+        this.state.busy = false;
+        this.state.passed = false;
+        this.state.token = null;
+        this.hiddenInput.block();
+        this.callbacks.emit('fail', reason);
       });
   }
 
@@ -304,7 +316,7 @@ export abstract class BaseCaptcha {
     }
   }
 
-  protected submit(data: Record<string, string>): void {
+  protected submit(data: Record<string, unknown>): void {
     this.submitter.submit(data);
   }
 

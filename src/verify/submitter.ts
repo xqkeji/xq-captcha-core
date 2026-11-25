@@ -10,7 +10,7 @@ export interface SubmitOutcome {
 
 /**
  * 上报检验结果。type 特有的 payload 由各包在调用 submit() 时传入，
- * 参数名沿用 xq-app-admin 契约（click_points / captcha_r / slide_track）。
+ * 以 JSON 请求体提交（points / captcha_r / slide_track）。
  */
 export class Submitter {
   constructor(
@@ -19,7 +19,7 @@ export class Submitter {
     private readonly outcome: SubmitOutcome,
   ) {}
 
-  submit(data: Record<string, string>): void {
+  submit(data: Record<string, unknown>): void {
     this.transport
       .request('POST', this.options.checkUrl, data)
       .then((body) => {

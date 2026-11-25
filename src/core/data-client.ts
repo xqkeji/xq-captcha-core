@@ -12,7 +12,8 @@ export class DataClient {
 
   async load(): Promise<CaptchaData> {
     const body = await this.transport.request('GET', this.options.dataUrl);
-    const data: unknown = JSON.parse(body);
+    const parsed: unknown = JSON.parse(body);
+    const data = unwrap(parsed);
 
     if (!isValidData(data, this.expectedType)) {
       throw new Error('验证码数据格式不正确');
@@ -20,6 +21,40 @@ export class DataClient {
 
     return data;
   }
+}
+
+/**
+ * 兼容两种生成接口返回结构：
+ * 1. 扁平的 CaptchaData（历史契约 / 演示 mock）：{success, type, image_base64, ...}
+ * 2. xq-app-admin 的统一信封：{code: 200, data: {type, image_base64, ...}}
+ *    信封没有 success 字段，成功与否由顶层 code 表达，这里补成 success: boolean。
+ *
+ * 只在顶层确实是信封时才解包：顶层有 data 对象、且顶层自身不是有效 CaptchaData
+ * （没有 image_base64），避免误伤扁平结构。
+ */
+function unwrap(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null) {
+    return value;
+  }
+
+  const root = value as Record<string, unknown>;
+  const payload = root.data;
+
+  if (typeof payload !== 'object' || payload === null || typeof root.image_base64 === 'string') {
+    return value;
+  }
+
+  // 信封只有在 code=200（或显式 success=true）时才算有效载荷。
+  // 非成功信封一律保留原样（无 success 字段），由 isValidData 拒绝，
+  // 避免把失败响应里残留的 image_base64 当成可绘制数据。
+  if (root.code !== 200 && root.success !== true) {
+    return value;
+  }
+
+  return {
+    ...(payload as Record<string, unknown>),
+    success: true,
+  };
 }
 
 function isValidData(data: unknown, expectedType: CaptchaType): data is CaptchaData {

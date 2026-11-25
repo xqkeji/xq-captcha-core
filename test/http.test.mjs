@@ -24,7 +24,7 @@ test('GET 把 data 拼到 query', async () => {
   }
 });
 
-test('POST 把 data 放 body 且带表单 Content-Type', async () => {
+test('POST 以 JSON 提交数组与数字，Content-Type 为 application/json', async () => {
   const calls = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = mockFetch((url, init) => {
@@ -33,10 +33,13 @@ test('POST 把 data 放 body 且带表单 Content-Type', async () => {
   });
   try {
     const transport = new FetchTransport(1000);
-    await transport.request('POST', '/check', { captcha_r: '10' });
+    await transport.request('POST', '/check', {
+      captcha_r: 10,
+      slide_track: [{ x: 1, t: 0 }],
+    });
     assert.equal(calls[0].method, 'POST');
-    assert.equal(calls[0].body, 'captcha_r=10');
-    assert.equal(calls[0].headers['Content-Type'], 'application/x-www-form-urlencoded');
+    assert.equal(calls[0].body, '{"captcha_r":10,"slide_track":[{"x":1,"t":0}]}');
+    assert.equal(calls[0].headers['Content-Type'], 'application/json');
   } finally {
     globalThis.fetch = originalFetch;
   }

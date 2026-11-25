@@ -16,6 +16,20 @@ test('兼容 code=200 / status=ok / error 字段', () => {
   assert.equal(parseCheckResponse('{"success":false,"error":"错了"}', '兜底').message, '错了');
 });
 
+test('兼容 {code,data} 信封，从 data 层取 token/message', () => {
+  assert.deepEqual(
+    parseCheckResponse(
+      '{"code":200,"data":{"success":true,"token":"tk_env","message":"通过"}}',
+      '兜底',
+    ),
+    { success: true, token: 'tk_env', message: '通过' },
+  );
+  assert.equal(
+    parseCheckResponse('{"code":500,"data":{"success":false,"message":"答错了"}}', '兜底').success,
+    false,
+  );
+});
+
 test('纯文本 legacy ok', () => {
   assert.equal(parseCheckResponse('OK', '兜底').success, true);
   assert.equal(parseCheckResponse('nope', '兜底').success, false);
